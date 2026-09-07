@@ -1,0 +1,29 @@
+name: AGPL boundary check
+
+# Blocks Swiss Ephemeris code/imports from ever entering this proprietary
+# repo. panchanga-core must only ever talk to ephemeris-service as an
+# HTTP client — see README.md "Hard rule: no Swiss Ephemeris code in this repo."
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  forbidden-imports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Swiss Ephemeris imports/files
+        run: |
+          set -e
+          if grep -RIiE "import swisseph|import pyswisseph|from swisseph" --include="*.py" --exclude-dir=".git" .; then
+            echo "::error::Found a Swiss Ephemeris import in panchanga-core."
+            echo "This repo must only call ephemeris-service over HTTP via EphemerisClient."
+            exit 1
+          fi
+          if find . -iname "*.se1" | grep -q .; then
+            echo "::error::Found Swiss Ephemeris data file(s) (.se1) in panchanga-core."
+            exit 1
+          fi
+          echo "OK: no Swiss Ephemeris imports or data files found."
