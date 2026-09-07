@@ -238,10 +238,62 @@ Rather than committing to one cloud platform for the entire roadmap, infrastruct
 
 ---
 
-## 14. Next Steps
+## 15. Non-Functional Requirements (NFRs)
+
+These apply across all phases and should be treated as acceptance criteria, not aspirational goals — most ambient-surface products fail on these rather than on core feature scope.
+
+| Category | Requirement | Notes |
+|---|---|---|
+| **Performance** | Widget must render from cache in <200ms with no network call on open | Backed by the on-device SQLite cache from Phase 0; never block widget render on a network request |
+| **Battery** | Background refresh must be event-driven (scheduled at the next tithi/nakshatra/yoga transition), never polling on a fixed short interval | See §6/§13; a naive polling widget is the #1 cause of uninstalls for ambient-data apps |
+| **Offline capability** | Full 14-day rolling window must be usable with zero network connectivity | Core to the product thesis — most users check panchanga early morning with patchy connectivity |
+| **App size** | Bundled dataset window should stay within a defined size budget (e.g. target <10MB for the initial rolling window) | Precompute is per-city; only ship the cities relevant to the user's selected location(s), not the full grid |
+| **Availability (backend)** | Precompute pipeline failures must not affect already-installed widgets | Widgets read local cache; a failed backend generation run degrades gracefully (stale-but-correct data) rather than breaking the widget |
+| **Data accuracy / correctness** | Tithi/nakshatra/yoga/karana boundary timestamps validated against a trusted reference panchangam before each dataset release | See product plan §0.6 and `panchanga-core/CLAUDE.md` — treat as a release gate, not a one-time check |
+| **Privacy** | Location data used only for calculation; no location data sent to third parties; minimize retention on any backend logs | Given India's DPDP Act and general app-store privacy requirements (Apple Privacy Nutrition Labels, Google Data Safety), define a clear data-use disclosure before Phase 1 ships |
+| **Security** | All client-backend communication over TLS; no secrets/API keys bundled in the client app | Applies to the ephemeris-service/orchestrator boundary and any future push-notification backend |
+| **Localization** | Support for Sanskrit/Devanagari, regional scripts (Tamil, Telugu, Kannada, etc.), and transliterated English from the start | Affects widget text-length/layout decisions — decide early per §0.2 |
+| **Regional calendar variation** | Support Purnimanta vs. Amanta month conventions and regional panchangam differences | Table stakes for credibility per the competitive landscape (§10) |
+| **Accessibility** | Widget text must respect OS-level dynamic type/font scaling; sufficient color contrast; screen-reader labels on interactive elements | Particularly relevant given the elderly/traditional-user persona in §2 |
+| **Compatibility** | Define minimum supported OS versions per platform up front (e.g. Android API level floor, iOS/watchOS version floor) | Widget frameworks (Glance, WidgetKit) have version floors that constrain your addressable install base — confirm before committing to a widget size/feature mix |
+| **Observability** | Crash reporting and (opt-in) usage analytics from day one, instrumented specifically for the North Star metric (ambient-view-to-app-open ratio) | Can't measure the product's core thesis without this in place before Phase 1 launch |
+| **Maintainability** | Dataset schema (SQLite tables in §4B) must be versioned; app must handle a schema migration without data loss | Precomputed data will need format changes over time (e.g. adding karana segments once that logic is implemented) |
+| **Licensing compliance** | AGPL boundary (or Professional License terms) must hold as a release gate, enforced by CI, not just documentation | Already implemented as the `boundary-check` CI workflows in both scaffold repos — keep these required checks on the default branch, not optional |
+
+---
+
+## 16. Platform Support & Future PC Extension
+
+### 16.1 Current Platform Coverage
+
+| Platform | Framework | Status |
+|---|---|---|
+| Android (phone/tablet) | Jetpack Glance API | Phase 1 |
+| iOS (iPhone/iPad) | WidgetKit | Phase 1 |
+| watchOS (Apple Watch) | WidgetKit (shares framework/code with iOS) | Phase 3 |
+| Wear OS (Android watches) | Wear OS Tiles/Complications (separate Jetpack API from phone widgets) | Phase 3 |
+
+**Note:** each platform requires its own native widget implementation. If a Flutter cross-platform approach is used to accelerate Phase 1 (see `glance_widget`/`native_home_widgets` in §10), that only unifies Android/iOS phone widgets — Flutter does not run on watchOS, and its Wear OS support is limited, so watch complications will very likely still need native Kotlin/Swift regardless of the main app's stack. Plan Phase 3 engineering effort accordingly.
+
+### 16.2 Extending to PCs (candidate Phase 5 / opportunistic)
+
+| Platform | Approach | Effort | Notes |
+|---|---|---|---|
+| **macOS** | Extend the existing WidgetKit implementation | **Low** | Since macOS Sonoma (14), WidgetKit widgets run natively on the Mac desktop and Notification Center using largely the same SwiftUI code as the iOS widget — closer to a build-target addition than a rewrite. Strong candidate to bundle into Phase 3/4 given the low incremental cost. |
+| **Windows 11** | Native Windows Widgets Platform (Widgets Board), built via Windows App SDK | Medium | Official Microsoft framework with the same ambient-placement philosophy as mobile widgets (appears in the OS-level Widgets Board). A genuine separate build, not a code-share with mobile. |
+| **Linux** | GNOME Shell extension / KDE Plasma widget | High, fragmented | No unified ambient-widget system across desktop environments. Niche audience — lowest priority. |
+| **Universal fallback** | Lightweight cross-platform tray/menu-bar app (Tauri or Electron) | Medium, single codebase | Trades true OS-widget-board placement for one build covering Windows/Mac/Linux. Consider only if broad desktop reach matters more than ambient-placement fidelity. |
+
+**Recommendation:** treat macOS as a low-cost bonus to bundle alongside the iOS/watchOS work in Phase 3, and treat Windows as a distinct, deliberately-scoped Phase 5 initiative once mobile adoption validates the ambient-widget thesis. Deprioritize Linux and the universal tray-app fallback unless user demand specifically emerges.
+
+---
+
+## 17. Next Steps
 1. Send the Swiss Ephemeris licensing clarification email and get a licensing attorney's read in parallel; resolve AGPL vs. Professional License before Phase 0 engineering starts.
 2. Provision Oracle Cloud Always Free tier for Phase 0/1 hosting; claim AWS Activate Founders, GCP Start, and Microsoft Founders Hub credits now (self-serve, no cost) as a hedge for later phases.
 3. Validate Phase 1 scope with a small user survey: "Would you add a home screen widget for panchanga?"
 4. Prototype the Android Glance widget and iOS WidgetKit timeline in parallel (they can share the same backend data engine).
 5. Instrument analytics for the North Star metric (ambient-view-to-app-open ratio) before launch, so Phase 1 impact can be measured immediately.
 6. Revisit infrastructure choice at the start of Phase 2 — plan the move to managed push/scheduling (AWS EventBridge+SNS, GCP Cloud Scheduler+FCM, or Azure Notification Hubs) before contextual alerts/Live Activities are built.
+7. Define concrete acceptance thresholds for the NFRs in §15 (e.g. exact app size budget, minimum OS versions) before Phase 1 development locks in widget scope.
+8. Scope the macOS WidgetKit extension alongside Phase 3's iOS/watchOS work, given its low incremental cost.
