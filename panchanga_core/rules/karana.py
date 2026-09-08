@@ -32,6 +32,24 @@ def current_karana_index(sun_sidereal_deg: float, moon_sidereal_deg: float) -> i
 
 
 def karana_name_for_index(half_tithi_index: int) -> str:
-    raise NotImplementedError(
-        "Implement the fixed/movable karana lookup table before use."
-    )
+    """
+    Maps a 0-59 half-tithi index to its karana name using the traditional
+    sequencing rule:
+      - index 0: Kimstughna (fixed)
+      - indices 1-56: the 7 movable karanas, cycling 8 times
+      - index 57: Shakuni (fixed)
+      - index 58: Chatushpada (fixed)
+      - index 59: Naga (fixed)
+    """
+    if not 0 <= half_tithi_index <= 59:
+        raise ValueError(f"half_tithi_index must be in [0, 59], got {half_tithi_index}")
+
+    if half_tithi_index == 0:
+        return "Kimstughna"
+    if half_tithi_index == 57:
+        return "Shakuni"
+    if half_tithi_index == 58:
+        return "Chatushpada"
+    if half_tithi_index == 59:
+        return "Naga"
+    return MOVABLE_KARANAS[(half_tithi_index - 1) % len(MOVABLE_KARANAS)]
