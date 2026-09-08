@@ -1,4 +1,4 @@
-name: AGPL boundary check
+name: AGPL boundary check import
 
 # Blocks Swiss Ephemeris code/imports from ever entering this proprietary
 # repo. panchanga-core must only ever talk to ephemeris-service as an
