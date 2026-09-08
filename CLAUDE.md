@@ -2,41 +2,41 @@
 
 ## What this repo is
 
-The proprietary rule layer and precompute orchestrator for the Ambient
-Panchanga product: ayanamsa correction, tithi/nakshatra/yoga/karana
-calculations, rahu kalam/yamaganda/gulika rules, and the pipeline that
-generates the static dataset shipped inside the mobile app.
-License: proprietary/private.
+The rule layer and precompute orchestrator for the Ambient Panchanga
+product: ayanamsa correction, tithi/nakshatra/yoga/karana calculations,
+rahu kalam/yamaganda/gulika rules, and the pipeline that generates the
+static dataset shipped inside the mobile app.
 
 Full product context lives in `docs/product-plan.md` — read it before
-making architectural decisions, especially the sections "Phase 0
-Architecture — If Proceeding Under AGPL," "Licensing Decision," and
-"Deployment & Infrastructure." Treat it as the source of truth for *why*
-things are structured the way they are, not just *what* to build next.
+making architectural decisions, especially §11 ("Licensing Decision"),
+§13 ("Deployment & Infrastructure"), §15 ("NFRs"), and §16 ("Platform
+Support & Future PC Extension").
 
-## The one rule that overrides everything else
+## LICENSING DECISION: FINAL — AGPL-3.0, public repo
 
-**This repo must never import, link, or bundle Swiss Ephemeris.**
-No `import swisseph`, no `import pyswisseph`, no `.se1` data files, no
-copy-pasted logic from the Swiss Ephemeris source. The only permitted
-contact with ephemeris calculation is through
-`panchanga_core/client/ephemeris_client.py`'s `EphemerisClient`, which
-talks to the separate `ephemeris-service` repo over HTTP.
+This was a deliberate choice, made with full awareness that this repo's
+complete source — including the rule layer that's the product's actual
+differentiator — is open-source as a result. This is final; do not revert
+to treating this repo as proprietary/closed-source unless the user
+explicitly says the licensing decision has changed again.
 
-This repo has a CI workflow (`.github/workflows/boundary-check.yml`) that
-fails the build if a Swiss Ephemeris import or `.se1` file is detected.
-If a task seems to require Swiss Ephemeris directly (e.g. "just import it
-here, it's faster"), stop and say so instead of doing it — the fix is
-always "call EphemerisClient," never "import the library directly, just
-this once."
+**Practical implications:**
+- This repo is (or will be) public. Don't restrict visibility unilaterally.
+- `LICENSE` must contain the full, unmodified AGPL-3.0 text — if asked to
+  touch this file, don't hand-write or paraphrase license text; direct the
+  user to download it from https://www.gnu.org/licenses/agpl-3.0.txt.
+- `NOTICE` carries copyright/attribution — keep it separate from `LICENSE`.
 
-## Why this boundary exists
+## Architecture convention (style preference now, not a legal requirement)
 
-See `docs/product-plan.md` §11/§11.1. Short version: Swiss Ephemeris is
-AGPL-licensed (unless/until we buy the Professional License). Keeping this
-repo as a pure network client of a separate, generic ephemeris service is
-what lets this rule layer — the actual product differentiator — stay
-closed-source.
+This repo still only talks to `ephemeris-service` as an HTTP client via
+`panchanga_core/client/ephemeris_client.py`'s `EphemerisClient`, rather
+than importing Swiss Ephemeris directly. Keep this pattern — it's good
+separation of concerns even though both repos are AGPL/public either way.
+There's a CI workflow (`.github/workflows/boundary-check.yml`, still named
+"AGPL boundary check" so existing branch protection rules keep matching
+it) that flags direct Swiss Ephemeris imports — treat findings from it as
+a style nit to fix, not a licensing emergency.
 
 ## Current state / what's stubbed
 
@@ -84,7 +84,8 @@ produce plausible-looking but incorrect output.
 
 ## Do not do without being asked
 
-- Do not import Swiss Ephemeris code directly, under any justification.
+- Do not hand-write or paraphrase AGPL license text.
+- Do not make this repository private without being told the licensing
+  decision has changed again.
 - Do not ship/trust generated dataset output without validation against a
   reference source.
-- Do not remove or weaken the CI boundary check.

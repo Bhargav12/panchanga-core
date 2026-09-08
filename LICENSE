@@ -1,0 +1,17 @@
+ACTION REQUIRED before this repo is considered compliant:
+
+This repository is licensed under the GNU Affero General Public License
+version 3 (AGPL-3.0-only). This was a deliberate decision made with full
+awareness of its consequence: this repo's complete source — including the
+tithi/nakshatra/yoga/karana rule layer and orchestrator — is public. See
+docs/product-plan.md §11 for the full reasoning and Astrodienst's
+clarification that led to this decision.
+
+Replace this file with the full, unmodified, verbatim AGPL-3.0 license
+text, downloaded directly from:
+
+    https://www.gnu.org/licenses/agpl-3.0.txt
+
+Do not paraphrase, reformat, or reconstruct the license text by hand.
+
+See NOTICE for copyright/attribution details.

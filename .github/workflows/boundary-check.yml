@@ -1,8 +1,12 @@
 name: AGPL boundary check
 
-# Blocks Swiss Ephemeris code/imports from ever entering this proprietary
-# repo. panchanga-core must only ever talk to ephemeris-service as an
-# HTTP client — see README.md "Hard rule: no Swiss Ephemeris code in this repo."
+# NOTE: kept as "AGPL boundary check" (workflow name unchanged) so any
+# branch protection rule already configured against this check name keeps
+# working. This is no longer enforcing a legal/licensing boundary — both
+# ephemeris-service and panchanga-core are AGPL-3.0 and public now (see
+# docs/product-plan.md §11). This check is retained purely as an
+# architecture/style guard to keep this repo talking to Swiss Ephemeris
+# only via EphemerisClient, not as a direct import.
 
 on:
   pull_request:

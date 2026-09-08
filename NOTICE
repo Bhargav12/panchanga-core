@@ -1,0 +1,20 @@
+NOTICE
+
+This project (panchanga-core) is licensed under the GNU Affero General
+Public License version 3 (AGPL-3.0-only). See LICENSE for the full text.
+
+This project's rule layer computes values (tithi, nakshatra, yoga, karana,
+rahu kalam, and related panchanga elements) using raw astronomical data
+obtained from the ephemeris-service project, which in turn is built on the
+Swiss Ephemeris library:
+
+    Copyright (C) 1997-2026 Astrodienst AG, Switzerland. All rights reserved.
+    Authors of the Swiss Ephemeris: Dieter Koch and Alois Treindl.
+
+Per Astrodienst's stated interpretation of the AGPL license (see
+docs/product-plan.md §11), this project's complete source is made
+available under AGPL-3.0 as a consequence of that upstream dependency.
+
+Project-specific copyright:
+
+    Copyright (C) 2026 [YOUR NAME / COMPANY NAME] — replace before publishing.
