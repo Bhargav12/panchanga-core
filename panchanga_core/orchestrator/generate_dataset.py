@@ -50,8 +50,8 @@ def generate(start: date, days: int, db_path: str, ephemeris_url: str) -> None:
 
             raw = client.get_position(sample_dt_utc, city.lat, city.lon)
 
-            sun_sidereal = tropical_to_sidereal(raw.sun_longitude_deg, AyanamsaSystem.LAHIRI)
-            moon_sidereal = tropical_to_sidereal(raw.moon_longitude_deg, AyanamsaSystem.LAHIRI)
+            sun_sidereal = tropical_to_sidereal(raw.sun_longitude_deg, AyanamsaSystem.LAHIRI, sample_dt_utc)
+            moon_sidereal = tropical_to_sidereal(raw.moon_longitude_deg, AyanamsaSystem.LAHIRI, sample_dt_utc)
 
             tithi_name = TITHI_NAMES[current_tithi_index(sun_sidereal, moon_sidereal)]
             nakshatra_name = NAKSHATRA_NAMES[current_nakshatra_index(moon_sidereal)]
