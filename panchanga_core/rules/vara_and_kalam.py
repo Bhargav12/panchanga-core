@@ -39,6 +39,13 @@ def vara_name(sunrise_local_date_weekday: int) -> str:
 
 
 def _segment_window(sunrise_utc: datetime, sunset_utc: datetime, segment_index: int) -> TimeWindow:
+    if sunset_utc <= sunrise_utc:
+        raise ValueError(
+            f"sunset_utc ({sunset_utc.isoformat()}) must be after sunrise_utc "
+            f"({sunrise_utc.isoformat()}) — check that both were fetched for "
+            "the same local calendar day, not paired via 'next occurrence "
+            "after an arbitrary instant' semantics"
+        )
     day_length = sunset_utc - sunrise_utc
     segment_length = day_length / 8
     start = sunrise_utc + segment_length * segment_index

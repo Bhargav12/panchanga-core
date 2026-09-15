@@ -14,10 +14,11 @@ Usage:
 import argparse
 import os
 import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from panchanga_core.client.ephemeris_client import EphemerisClient
-from panchanga_core.orchestrator.grid import CITY_GRID
+from panchanga_core.orchestrator.grid import CITY_GRID, City
 from panchanga_core.orchestrator.schema import SCHEMA_SQL
 from panchanga_core.rules.ayanamsa import AyanamsaSystem, tropical_to_sidereal
 from panchanga_core.rules.nakshatra import NAKSHATRA_NAMES, current_nakshatra_index
@@ -31,8 +32,41 @@ from panchanga_core.rules.vara_and_kalam import (
 from panchanga_core.rules.yoga import YOGA_NAMES, current_yoga_index
 
 
-def generate(start: date, days: int, db_path: str, ephemeris_url: str) -> None:
-    client = EphemerisClient(base_url=ephemeris_url)
+def _local_midnight_utc(local_date: date, tz_name: str) -> datetime:
+    """UTC instant for local midnight (00:00) of local_date in the given
+    IANA timezone.
+
+    ephemeris-service's /position returns the NEXT sunrise/sunset after the
+    requested instant (swe.rise_trans semantics). Requesting from a mid-day
+    instant is unsafe: "next sunset after now" is later today, but "next
+    sunrise after now" has already happened today and rolls over to
+    tomorrow, so sunrise_utc ends up after sunset_utc. Anchoring the
+    request to local midnight guarantees both the next sunrise and the
+    next sunset land on the same local calendar day, in the correct order.
+    """
+    local_midnight = datetime(
+        local_date.year, local_date.month, local_date.day, tzinfo=ZoneInfo(tz_name)
+    )
+    return local_midnight.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def _fetch_sun_times(client: EphemerisClient, current_date: date, city: City):
+    """Fetch today's sunrise/sunset for a city, anchored to local midnight
+    so the pairing is always same-day and correctly ordered (see
+    _local_midnight_utc)."""
+    anchor_utc = _local_midnight_utc(current_date, city.timezone)
+    return client.get_position(anchor_utc, city.lat, city.lon)
+
+
+def generate(
+    start: date,
+    days: int,
+    db_path: str,
+    ephemeris_url: str = None,
+    client: EphemerisClient = None,
+) -> None:
+    if client is None:
+        client = EphemerisClient(base_url=ephemeris_url)
 
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA_SQL)
@@ -50,6 +84,15 @@ def generate(start: date, days: int, db_path: str, ephemeris_url: str) -> None:
 
             raw = client.get_position(sample_dt_utc, city.lat, city.lon)
 
+            # Sunrise/sunset must NOT come from `raw` above: that call is
+            # anchored to the mid-day sample instant, which falls between
+            # today's sunrise and today's sunset. Per ephemeris-service's
+            # "next occurrence after this instant" semantics, that pairing
+            # returns today's sunset but tomorrow's sunrise (sunrise_utc >
+            # sunset_utc). Fetch sun times separately, anchored to local
+            # midnight, so they're correctly ordered and same-day.
+            sun_times = _fetch_sun_times(client, current_date, city)
+
             sun_sidereal = tropical_to_sidereal(raw.sun_longitude_deg, AyanamsaSystem.LAHIRI)
             moon_sidereal = tropical_to_sidereal(raw.moon_longitude_deg, AyanamsaSystem.LAHIRI)
 
@@ -59,9 +102,9 @@ def generate(start: date, days: int, db_path: str, ephemeris_url: str) -> None:
 
             weekday_name = VARA_NAMES[(current_date.weekday() + 1) % 7]  # Mon=0 -> Sun=0 remap
 
-            rk = rahu_kalam(raw.sunrise_utc, raw.sunset_utc, weekday_name)
-            ym = yamaganda(raw.sunrise_utc, raw.sunset_utc, weekday_name)
-            gk = gulika_kalam(raw.sunrise_utc, raw.sunset_utc, weekday_name)
+            rk = rahu_kalam(sun_times.sunrise_utc, sun_times.sunset_utc, weekday_name)
+            ym = yamaganda(sun_times.sunrise_utc, sun_times.sunset_utc, weekday_name)
+            gk = gulika_kalam(sun_times.sunrise_utc, sun_times.sunset_utc, weekday_name)
 
             conn.execute(
                 """
@@ -72,7 +115,7 @@ def generate(start: date, days: int, db_path: str, ephemeris_url: str) -> None:
                 """,
                 (
                     city.city_id, current_date.isoformat(),
-                    raw.sunrise_utc.isoformat(), raw.sunset_utc.isoformat(),
+                    sun_times.sunrise_utc.isoformat(), sun_times.sunset_utc.isoformat(),
                     rk.start_utc.isoformat(), rk.end_utc.isoformat(),
                     ym.start_utc.isoformat(), ym.end_utc.isoformat(),
                     gk.start_utc.isoformat(), gk.end_utc.isoformat(),
